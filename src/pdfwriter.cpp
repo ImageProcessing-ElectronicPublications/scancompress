@@ -19,12 +19,14 @@ PDFWriter::PDFWriter(QObject *parent, const QString fn) : QObject(parent), f(fn)
 
 bool PDFWriter::writeHeader()
 {
-    try {
+    try
+    {
         if (!f.open(QFile::WriteOnly))
             throw new File::IoErr();
         curOfs += f.write("%PDF-1.7\n%\255\255\255\255\n");
     }
-    catch (File::IoErr ex) {
+    catch (File::IoErr ex)
+    {
         return false;
     }
 
@@ -33,13 +35,14 @@ bool PDFWriter::writeHeader()
 
 bool PDFWriter::addPage(const Image &img)
 {
-    try {
+    try
+    {
         const auto objIdx = ++curObj;
         const auto imgIdx = ++curImg;
 
         // record XRef for later use
         xrefs.append(QString("%1 00000 n")
-                        .arg(curOfs, 10, 10, QChar('0')));
+                     .arg(curOfs, 10, 10, QChar('0')));
 
         // compress image
         qDebug() << "compressing...";
@@ -51,7 +54,7 @@ bool PDFWriter::addPage(const Image &img)
         ZopfliInitOptions(&opts);
         opts.numiterations = 15;
         ZopfliCompress(&opts, ZOPFLI_FORMAT_ZLIB, reinterpret_cast<uchar *>(img.sampleData().data()),
-                      size_t(img.sampleData().length()), &flate, &flateLen);
+                       size_t(img.sampleData().length()), &flate, &flateLen);
         qDebug() << "compression done";
 
         // write image
@@ -62,21 +65,24 @@ bool PDFWriter::addPage(const Image &img)
                                   "/Width %2\n"
                                   "/Height %3\n"
                                   "/ColorSpace ")
-                                  .arg(objIdx)
-                                  .arg(img.width())
-                                  .arg(img.height())
+                          .arg(objIdx)
+                          .arg(img.width())
+                          .arg(img.height())
                          );
-        if (img.palette().length()) {
+        if (img.palette().length())
+        {
             curOfs += f.write(QString("[/Indexed /DeviceGray %1 <")
                               .arg(img.palette().length() - 1));
             // write indexed palette
-            foreach (QRgb c, img.palette()) {
+            foreach (QRgb c, img.palette())
+            {
                 curOfs += f.write(QString("%1 ")
-                              .arg(qGray(c), 2, 16, QChar('0')));
+                                  .arg(qGray(c), 2, 16, QChar('0')));
             }
             curOfs += f.write(">]\n");
         }
-        else {
+        else
+        {
             curOfs += f.write("/DeviceGray\n");
         }
 
@@ -85,24 +91,24 @@ bool PDFWriter::addPage(const Image &img)
                                   "/Length %2\n"
                                   ">>\n"
                                   "stream\n")
-                                  .arg(img.bps())
-                                  .arg(flateLen)
+                          .arg(img.bps())
+                          .arg(flateLen)
                          );
 
-       curOfs += f.write(flate, static_cast<qint64>(flateLen));
-       free(flate);
-       curOfs += f.write(QString("\nendstream\n"
-                                 "endobj\n"));
+        curOfs += f.write(flate, static_cast<qint64>(flateLen));
+        free(flate);
+        curOfs += f.write(QString("\nendstream\n"
+                                  "endobj\n"));
 
         // write page appearance stream
         xrefs.append(QString("%1 00000 n").arg(curOfs, 10, 10, QChar('0')));
         const auto appIdx = ++curObj;
         const auto appear = QString(
-                    "q\n"
-                    "595.275591 0 0 841.889764 0 0 cm\n" /* TODO: actual dimensions */
-                    "/I%2 Do\n"
-                    "Q\n"
-                    ).arg(imgIdx);
+                                "q\n"
+                                "595.275591 0 0 841.889764 0 0 cm\n" /* TODO: actual dimensions */
+                                "/I%2 Do\n"
+                                "Q\n"
+                            ).arg(imgIdx);
 
         curOfs += f.write(QString("%1 0 obj\n"
                                   "<< /Length %2\n"
@@ -111,9 +117,9 @@ bool PDFWriter::addPage(const Image &img)
                                   "%3"
                                   "endstream\n"
                                   "endobj\n")
-                            .arg(appIdx)
-                            .arg(appear.length())
-                            .arg(appear));
+                          .arg(appIdx)
+                          .arg(appear.length())
+                          .arg(appear));
 
         // write page resource
         const quint16 resObj = ++curObj;
@@ -124,9 +130,9 @@ bool PDFWriter::addPage(const Image &img)
                                   ">>\n"
                                   ">>\n"
                                   "endobj\n")
-                            .arg(resObj)
-                            .arg(imgIdx)
-                            .arg(objIdx));
+                          .arg(resObj)
+                          .arg(imgIdx)
+                          .arg(objIdx));
 
         // write page
         xrefs.append(QString("%1 00000 n").arg(curOfs, 10, 10, QChar('0')));
@@ -140,15 +146,16 @@ bool PDFWriter::addPage(const Image &img)
                                   "/Resources %3 0 R\n"
                                   ">>\n"
                                   "endobj\n")
-                            .arg(pageIdx)
-                            .arg(appIdx)
-                            .arg(resObj));
+                          .arg(pageIdx)
+                          .arg(appIdx)
+                          .arg(resObj));
 
         pageIds.append(QString().setNum(pageIdx));
 
         return true;
     }
-    catch(...) {
+    catch(...)
+    {
         qCritical() << "adding page failed";
     }
 
@@ -167,8 +174,8 @@ bool PDFWriter::finish()
                               "/ProcSet [/PDF /Text /ImageB /ImageC]\n"
                               ">>\n"
                               "endobj\n")
-                              .arg(pageIds.count())
-                              .arg(pageIds.join(" 0 R ")));
+                      .arg(pageIds.count())
+                      .arg(pageIds.join(" 0 R ")));
 
     xrefs.prepend(QString("%1 00000 n").arg(pagesOfs, 10, 10, QChar('0')));
 
@@ -187,19 +194,19 @@ bool PDFWriter::finish()
     curOfs += f.write(QString("xref\n"
                               "%1 %2\n"
                               "0000000000 65535 f \n%3 \n")
-                              .arg(0)
-                              .arg(xrefs.count() + 1)
-                              .arg(xrefs.join(" \n")));
+                      .arg(0)
+                      .arg(xrefs.count() + 1)
+                      .arg(xrefs.join(" \n")));
     // add trailer
     curOfs += f.write(QString(
-                    "trailer\n"
-                    "<< /Size %1\n"
-                    "/Root 1 0 R\n"
-                    ">>\n"
-                    "startxref\n"
-                    "%2\n"
-                    "%%EOF").arg(xrefs.count() + 1)
-                            .arg(refOfs));
+                          "trailer\n"
+                          "<< /Size %1\n"
+                          "/Root 1 0 R\n"
+                          ">>\n"
+                          "startxref\n"
+                          "%2\n"
+                          "%%EOF").arg(xrefs.count() + 1)
+                      .arg(refOfs));
 
     return true;
 }

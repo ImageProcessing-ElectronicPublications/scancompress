@@ -26,7 +26,8 @@ uint TIFFReader::dpi(QByteArray &inp)
     idx = inp.begin() + ofs;
 
     // process IFD
-    while (true) {
+    while (true)
+    {
         uint16_t entries;
 
         // get number of entries
@@ -36,7 +37,8 @@ uint TIFFReader::dpi(QByteArray &inp)
         idx += 2;
 
         // process IFD entries
-        for (uint32_t entry = 0; entry < entries; entry++) {
+        for (uint32_t entry = 0; entry < entries; entry++)
+        {
             const QByteArray::iterator ifd = idx;
 
             if (ifd + 12 > inp.end())
@@ -52,12 +54,15 @@ uint TIFFReader::dpi(QByteArray &inp)
                 type = qFromBigEndian(type);
 
             // read the IFDs we're interested in
-            if (tag == 296) { // Resolution Unit
+            if (tag == 296)   // Resolution Unit
+            {
                 Q_ASSERT(type == 3); // SHORT
                 unit = *(reinterpret_cast<uint32_t *>(ifd + 8));
                 if (bigEndian)
                     unit = qFromBigEndian(unit);
-            } else if (tag == 282 || tag == 283) { // Resolution Unit
+            }
+            else if (tag == 282 || tag == 283)     // Resolution Unit
+            {
                 uint32_t valOfs, num, denom;
 
                 valOfs = *(reinterpret_cast<uint32_t *>(ifd + 8));

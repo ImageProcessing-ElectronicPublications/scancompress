@@ -7,3 +7,12 @@ compression techniques. Experimental work-in-progress.
 
 ## Dependencies
 * Qt 5
+
+## Build
+
+```shell
+git clone --recurse-submodules {this git}
+cd scancompress
+qmake .
+make
+```
